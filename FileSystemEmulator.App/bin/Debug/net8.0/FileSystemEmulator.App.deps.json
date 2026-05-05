@@ -1,0 +1,39 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v8.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v8.0": {
+      "FileSystemEmulator.App/1.0.0": {
+        "dependencies": {
+          "FileSystemEmulator.Domain": "1.0.0"
+        },
+        "runtime": {
+          "FileSystemEmulator.App.dll": {}
+        }
+      },
+      "FileSystemEmulator.Domain/1.0.0": {
+        "runtime": {
+          "FileSystemEmulator.Domain.dll": {
+            "assemblyVersion": "1.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      }
+    }
+  },
+  "libraries": {
+    "FileSystemEmulator.App/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "FileSystemEmulator.Domain/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    }
+  }
+}

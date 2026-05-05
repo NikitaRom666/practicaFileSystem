@@ -1,0 +1,12 @@
+C:\Users\strey\Desktop\practicaFileSystem\FileSystemEmulator.Domain\bin\Debug\net8.0\FileSystemEmulator.Domain.deps.json
+C:\Users\strey\Desktop\practicaFileSystem\FileSystemEmulator.Domain\bin\Debug\net8.0\FileSystemEmulator.Domain.dll
+C:\Users\strey\Desktop\practicaFileSystem\FileSystemEmulator.Domain\bin\Debug\net8.0\FileSystemEmulator.Domain.pdb
+C:\Users\strey\Desktop\practicaFileSystem\FileSystemEmulator.Domain\obj\Debug\net8.0\FileSystemEmulator.Domain.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\strey\Desktop\practicaFileSystem\FileSystemEmulator.Domain\obj\Debug\net8.0\FileSystemEmulator.Domain.AssemblyInfoInputs.cache
+C:\Users\strey\Desktop\practicaFileSystem\FileSystemEmulator.Domain\obj\Debug\net8.0\FileSystemEmulator.Domain.AssemblyInfo.cs
+C:\Users\strey\Desktop\practicaFileSystem\FileSystemEmulator.Domain\obj\Debug\net8.0\FileSystemEmulator.Domain.csproj.CoreCompileInputs.cache
+C:\Users\strey\Desktop\practicaFileSystem\FileSystemEmulator.Domain\obj\Debug\net8.0\FileSystemEmulator.Domain.sourcelink.json
+C:\Users\strey\Desktop\practicaFileSystem\FileSystemEmulator.Domain\obj\Debug\net8.0\FileSystemEmulator.Domain.dll
+C:\Users\strey\Desktop\practicaFileSystem\FileSystemEmulator.Domain\obj\Debug\net8.0\refint\FileSystemEmulator.Domain.dll
+C:\Users\strey\Desktop\practicaFileSystem\FileSystemEmulator.Domain\obj\Debug\net8.0\FileSystemEmulator.Domain.pdb
+C:\Users\strey\Desktop\practicaFileSystem\FileSystemEmulator.Domain\obj\Debug\net8.0\ref\FileSystemEmulator.Domain.dll
