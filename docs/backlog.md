@@ -1,20 +1,18 @@
 # Backlog
 
-## High Priority
-
-- [x] Реалізувати FileItem та DirectoryItem (Composite pattern)
-- [x] Реалізувати Command pattern для операцій Copy, Move, Delete
-- [x] Реалізувати Proxy pattern для контролю доступу
-- [x] Система ролей (Admin, User, Guest)
-- [x] CommandHistory з Undo
-
-## Medium Priority
-
-- [x] Пошук файлів по імені та розширенню
-- [x] Серіалізація структури у JSON
-- [x] Unit tests (xUnit + Moq)
-
-## Low Priority
-
-- [ ] Розширення для додаткових операцій
-- [ ] Покращення UI/UX
+| ID | Функція | Статус |
+|----|---------| -------|
+| 1 | Базова ієрархія файлів і каталогів | Виконано |
+| 2 | Composite pattern (рекурсивний розмір і пошук) | Виконано |
+| 3 | Command pattern (Copy) | Виконано |
+| 4 | Command pattern (Move) | Виконано |
+| 5 | Command pattern (Delete) | Виконано |
+| 6 | Undo операцій (CommandHistory, стек до 20) | Виконано |
+| 7 | Proxy pattern (контроль доступу) | Виконано |
+| 8 | Ролі користувачів (Admin, User, Guest) | Виконано |
+| 9 | AccessDeniedException при порушенні прав | Виконано |
+| 10 | Generic Repository<T> | Виконано |
+| 11 | LINQ запити (пошук, фільтрація, сортування) | Виконано |
+| 12 | JSON серіалізація та десеріалізація | Виконано |
+| 13 | xUnit тести (27 тестів) | Виконано |
+| 14 | Moq для ізоляції залежностей | Виконано |

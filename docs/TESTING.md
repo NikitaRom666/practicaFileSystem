@@ -1,27 +1,27 @@
-# Testing Results
+# Результати тестування
 
-## Test Coverage
+## Загальний результат
 
-- **Total:** ~90%
-- **Domain:** 95%+
-- **Commands:** 100%
-- **Proxy:** 95%
-- **Services:** 85%
+Passed: 27 | Failed: 0 | Duration: ~44ms
+Framework: xUnit + Moq | Target: net8.0
 
-## Test Files
+## По групах тестів
 
-1. **CommandHistoryTests** — 8 тестів
-2. **CommandTests** — 12 тестів
-3. **DirectoryItemTests** — 10 тестів
-4. **FileItemTests** — 8 тестів
-5. **FileSystemProxyTests** — 15 тестів
+| Група | Кількість тестів | Результат |
+|-------|------------------|-----------|
+| CommandTests | 8 | Passed |
+| CommandHistoryTests | 4 | Passed |
+| DirectoryItemTests | 6 | Passed |
+| FileItemTests | 5 | Passed |
+| FileSystemProxyTests | 4 | Passed |
 
-## Результати
+## Що покривають тести
 
-```
-dotnet test
-
-Test run finished successfully
-```
-
-Всі тести проходять.
+- Виконання та скасування команд (Copy, Move, Delete)
+- Обмеження стеку CommandHistory (до 20 команд)
+- Рекурсивний розрахунок розміру каталогу
+- Пошук файлів по шаблону
+- Клонування файлів (Clone)
+- Перевірка прав доступу через Proxy
+- AccessDeniedException при порушенні прав
+- Права адміністратора без обмежень

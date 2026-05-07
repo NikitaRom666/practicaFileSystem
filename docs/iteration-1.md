@@ -1,13 +1,15 @@
-# Iteration 1
+# Ітерація 1 — Сутності та архітектура
 
-## Завдання
+## Що зроблено
 
-- Встановити базову структуру проекту (Domain, App, Tests)
-- Реалізувати Entities: FileItem, DirectoryItem, DiskVolume
-- Реалізувати інтерфейси: IFileSystemItem, ISearchable, IPrintable
+- Налаштовано Git-репозиторій та .gitignore
+- Створено структуру рішення (Domain, App, Tests)
+- Реалізовано абстрактний клас FileSystemItem
+- Реалізовано FileItem та DirectoryItem (Composite pattern)
+- Реалізовано DiskVolume
+- Визначено інтерфейси IFileSystemItem, ISearchable, IPrintable
+- Побудовано UML-діаграму класів
 
-## Результати
+## Результат
 
-- ✓ Структура проекту налагоджена
-- ✓ Entities реалізовані
-- ✓ Interfaces визначені
+Після цієї ітерації система має функціональну ієрархію файлів та каталогів з можливістю обходу дерева.

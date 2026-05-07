@@ -1,32 +1,51 @@
-# Sequence Diagrams
+# Діаграми послідовностей
 
-## Copy Operation Flow
+## Copy + Undo
 
-```
-User -> CopyCommand -> FileSystemProxy -> DirectoryItem
-                           |
-                           v
-                      Check rights
-                           |
-                           v
-                      Execute Copy
-```
-
-## Undo Flow
-
-```
-User -> CommandHistory.Undo() -> Last Command.Undo()
-                                     |
-                                     v
-                             Restore previous state
+```mermaid
+sequenceDiagram
+    participant App
+    participant CommandHistory
+    participant CopyCommand
+    participant DirectoryItem
+    App->>CommandHistory: Execute(CopyCommand)
+    CommandHistory->>CopyCommand: Execute()
+    CopyCommand->>DirectoryItem: Add(copy)
+    Note over CommandHistory: збережено в стеку
+    App->>CommandHistory: Undo()
+    CommandHistory->>CopyCommand: Undo()
+    CopyCommand->>DirectoryItem: Remove(copy)
 ```
 
-## Access Control Flow
+## Proxy — контроль доступу
 
+```mermaid
+sequenceDiagram
+    participant App
+    participant FileSystemProxy
+    participant UserPermission
+    App->>FileSystemProxy: WriteContent(file, alice)
+    FileSystemProxy->>UserPermission: HasRight(Write)
+    UserPermission-->>FileSystemProxy: true
+    FileSystemProxy-->>App: OK
+    App->>FileSystemProxy: WriteContent(file, guest)
+    FileSystemProxy->>UserPermission: HasRight(Write)
+    UserPermission-->>FileSystemProxy: false
+    FileSystemProxy-->>App: AccessDeniedException
 ```
-User -> FileSystemProxy -> Check Role & Permissions
-                               |
-                               +-- Admin? -> Allow
-                               +-- User? -> Check specific right
-                               +-- Guest? -> Allow only Read
+
+## Серіалізація
+
+```mermaid
+sequenceDiagram
+    participant App
+    participant SerializationService
+    participant File
+    App->>SerializationService: SaveToJson(volume, path)
+    SerializationService->>File: WriteAllText(json)
+    Note over File: disk_backup.json
+    App->>SerializationService: LoadFromJson(path)
+    SerializationService->>File: ReadAllText(path)
+    File-->>SerializationService: json
+    SerializationService-->>App: DiskVolume
 ```

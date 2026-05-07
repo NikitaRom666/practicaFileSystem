@@ -1,13 +1,15 @@
-# Iteration 2
+# Ітерація 2 — Патерни та запити
 
-## Завдання
+## Що зроблено
 
-- Реалізувати Command pattern (CopyCommand, MoveCommand, DeleteCommand)
-- Реалізувати CommandHistory з Undo
-- Реалізувати систему ролей (Admin, User, Guest)
+- Реалізовано ICommand, CopyCommand, MoveCommand, DeleteCommand
+- Реалізовано CommandHistory зі стеком до 20 команд
+- Реалізовано FileSystemProxy та контроль доступу
+- Додано ролі UserRole та права AccessRight з [Flags]
+- Реалізовано FileSystemRepository<T>
+- Написано LINQ запити в FileSystemQueryService
+- Додано власні винятки FileSystemException, AccessDeniedException
 
-## Результати
+## Результат
 
-- ✓ Command pattern реалізований
-- ✓ CommandHistory зберігає до 20 команд
-- ✓ Система ролей розроблена
+Система отримала можливість виконувати операції з файлами (Copy, Move, Delete) та скасовувати їх, а також контролювати доступ за допомогою ролей.
