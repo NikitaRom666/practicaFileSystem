@@ -102,3 +102,4 @@ classDiagram
     FileSystemProxy --> UserPermission
     FileSystemProxy ..> AccessDeniedException
 ```
+
