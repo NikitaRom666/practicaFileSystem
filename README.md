@@ -1,38 +1,33 @@
 # File System Emulator
 
-Емулятор файлової системи з древовидною структурою та контролем доступу.
-Демонструє паттерни Composite, Command та Proxy.
+Навчальний міні-проєкт з ООП на C#. Емулює файлову систему з деревом каталогів,
+контролем доступу та скасуванням операцій. Демонструє патерни Composite, Command та Proxy.
 
 ## Можливості
 
-- Ієрархія файлів та каталогів з рекурсивними операціями
-- Копіювання, переміщення, видалення з Undo (до 20 операцій)
-- Контроль доступу з ролями (Адміністратор, Користувач, Гість)
-- Пошук файлів по імені та розширенню
-- Серіалізація структури та команд у JSON
+- Ієрархія файлів і каталогів з рекурсивними операціями.
+- Копіювання, переміщення, видалення з підтримкою Undo (до 20 операцій).
+- Контроль доступу через ролі: Admin, User, Guest.
+- Пошук файлів по імені та розширенню (LINQ).
+- Збереження та відновлення структури диску у файл `disk_backup.json`.
 
 ## Архітектура
 
 ```
 FileSystemEmulator.Domain/
-├── Entities/ (FileItem, DirectoryItem, DiskVolume, користувачі та ролі)
-├── Interfaces/ (IFileSystemItem, ISearchable, IPrintable)
+├── Entities/         — FileItem, DirectoryItem, DiskVolume, FileSystemUser
+├── Interfaces/       — IFileSystemItem, ISearchable, IPrintable
 ├── Patterns/
-│   ├── Command/ (CopyCommand, MoveCommand, DeleteCommand, CommandHistory)
-│   ├── Composite/ (древовидна ієрархія)
-│   └── Proxy/ (FileSystemProxy з перевіркою прав)
-├── Repository/ (FileSystemRepository<T>)
-├── Services/ (QueryService для пошуку, SerializationService)
-└── Exceptions/ (власні винятки)
-
+│   ├── Command/      — CopyCommand, MoveCommand, DeleteCommand, CommandHistory
+│   └── Proxy/        — FileSystemProxy, IFileSystemProxy
+├── Repository/       — FileSystemRepository<T>
+├── Services/         — FileSystemQueryService, SerializationService
+└── Exceptions/       — FileSystemException, AccessDeniedException
 FileSystemEmulator.App/
-└── Program.cs (демонстрація)
-
+└── Program.cs
 FileSystemEmulator.Tests/
 └── xUnit тести з Moq
 ```
-
-![Архітектура проекту](docs/01-architecture.png)
 
 ## Збирання та запуск
 
@@ -64,36 +59,33 @@ dotnet test
 
 ### Файли та каталоги
 
-1. Файл містить ім'я, розширення, розмір та дату створення
-2. Каталог містить файли та інші каталоги (паттерн Composite)
-3. Видалення каталога видаляє всі вложені елементи
-4. Копіювання створює нову ієрархію з новими ID
-
-![Composite паттерн](docs/02-composite-pattern.png)
+1. Файл зберігає ім'я, розширення та вміст у байтах.
+2. Каталог містить файли та підкаталоги (Composite pattern).
+3. Видалення каталогу видаляє всі вкладені елементи.
+4. Копіювання створює новий елемент з новим Id.
 
 ### Права доступу
 
-1. Користувач має роль та набір прав (Read, Write, Execute, Delete)
-2. FileSystemProxy перевіряє права перед операцією
-3. Адміністратор має всі права без обмежень
-4. Гість має тільки права на читання
-5. Заборонені операції кидають AccessDeniedException
+1. Admin має всі права без перевірок.
+2. User має права на читання та запис.
+3. Guest має тільки право на читання.
+4. Операція без прав кидає AccessDeniedException.
 
-![Proxy паттерн](docs/03-proxy-class-diagram.png)
-![Послідовність контролю доступу](docs/05-proxy-access-sequence.png)
+### Команди з Undo
 
-### Команди з undo
-
-1. Операції Copy, Move, Delete реалізують ICommand
-2. CommandHistory зберігає до 20 команд в стеку
-3. Undo скасовує операцію та відновлює стан
-4. Кожна команда може бути скасована
-
-![Послідовність Copy з Undo](docs/04-command-undo-sequence.png)
+1. Copy, Move, Delete реалізують інтерфейс ICommand.
+2. CommandHistory зберігає до 20 команд у стеку.
+3. Undo скасовує останню операцію та відновлює стан.
 
 ## Документація
 
-- [Послідовність серіалізації](docs/06-serialization-sequence.png)
-- [Архітектура](docs/architecture.md)
-- [Стратегія тестування](docs/test-strategy.md)
-- [Результати тестів](docs/TESTING.md)
+- [Vision](docs/vision.md)
+- [Backlog](docs/backlog.md)
+- [Iteration 1](docs/iteration-1.md)
+- [Iteration 2](docs/iteration-2.md)
+- [Iteration 3](docs/iteration-3.md)
+- [Class Diagram](docs/class-diagram.md)
+- [Sequence Diagrams](docs/sequence-diagrams.md)
+- [TESTING](docs/TESTING.md)
+- [test-matrix](docs/test-matrix.md)
+- [test-strategy](docs/test-strategy.md)
