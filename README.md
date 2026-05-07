@@ -1,160 +1,91 @@
-# Емулятор файлової системи
+# File System Emulator
 
-Проєкт реалізує in-memory емулятор файлової системи на C# .NET 9 з реалізацією основних design патернів та SOLID принципів.
+Емулятор файлової системи з ієрархією каталогів, системою прав доступу та історією операцій. Демонструє патерни Composite, Command та Proxy в C#.
 
-## Структура рішення
+## Можливості
+
+- Ієрархія файлів та каталогів з рекурсивними операціями
+- Копіювання, переміщення, видалення з підтримкою Undo до 20 операцій
+- Система прав доступу з ролями (Адміністратор, Користувач, Гість)
+- Пошук файлів по імені та розширенню
+- Серіалізація структури та команд у JSON
+
+## Архітектура
 
 ```
-FileSystemEmulator/
-├── FileSystemEmulator.Domain/       (Сутності та логіка)
-│   ├── Entities/                   (FileItem, DirectoryItem, DiskVolume)
-│   ├── Interfaces/                 (IFileSystemItem, ISearchable, IPrintable)
-│   ├── Patterns/
-│   │   ├── Command/               (CopyCommand, MoveCommand, DeleteCommand, CommandHistory)
-│   │   ├── Composite/             (реалізовано через DirectoryItem)
-│   │   └── Proxy/                 (FileSystemProxy з перевіркою прав)
-│   ├── Exceptions/                (Спеціальні винятки)
-│   ├── Repository/                (Generic FileSystemRepository<T>)
-│   └── Services/                  (SerializationService, FileSystemQueryService)
-├── FileSystemEmulator.App/         (Консольна демонстрація)
-└── FileSystemEmulator.Tests/       (27 xUnit тестів)
+FileSystemEmulator.Domain/
+├── Entities/ (FileItem, DirectoryItem, DiskVolume, користувачі та ролі)
+├── Interfaces/ (IFileSystemItem, ISearchable, IPrintable)
+├── Patterns/
+│   ├── Command/ (CopyCommand, MoveCommand, DeleteCommand, CommandHistory з Undo)
+│   ├── Composite/ (ієрархія через FileSystemItem)
+│   └── Proxy/ (FileSystemProxy з перевіркою прав доступу)
+├── Repository/ (FileSystemRepository<T>)
+├── Services/ (QueryService для пошуку, SerializationService для JSON)
+└── Exceptions/ (спеціальні виключення)
+
+FileSystemEmulator.App/
+└── Program.cs (демонстрація роботи)
+
+FileSystemEmulator.Tests/
+└── xUnit тести з Moq (~90% покриття)
 ```
 
-## Реалізовані патерни
+## Збирання та запуск
 
-### Composite (Композит)
-- `DirectoryItem` містить `List<FileSystemItem>`
-- Методи `GetSize()`, `Print()`, `Search()` рекурсивно обробляють вложені елементи
-- Дозволяє працювати з файлами та папками через єдиний інтерфейс
+### Вимоги
 
-### Command + Undo
-- `ICommand` інтерфейс з `Execute()` та `Undo()`
-- `CopyCommand`, `MoveCommand`, `DeleteCommand` реалізують операції
-- `CommandHistory` зберігає до 20 команд в стеку і дозволяє їх скасовувати
-- Кожна операція логується: `[CMD] Executed: ...`
+- .NET 9 SDK
+- xUnit для тестів
+- Moq для мокування
 
-### Proxy
-- `FileSystemProxy` перевіряє права доступу перед операціями
-- `CheckAccess()` кидає `AccessDeniedException` якщо прав недостатньо
-- Адміністратор завжди має `FullControl` без додаткових перевірок
-- Логування всіх операцій: `[LOG] user читає file`
+### Збирання
 
-## SOLID принципи в проєкті
-
-### Single Responsibility Principle (SRP)
-- Кожен клас має одну відповідальність:
-  - `FileItem` — представлення файлу
-  - `DirectoryItem` — управління колекцією файлів
-  - `SerializationService` — тільки серіалізація (не змішана з логіком)
-  - `FileSystemProxy` — тільки перевірка прав (делегує до реальних об'єктів)
-
-### Open/Closed Principle (OCP)
-- Нові команди додаються без змін у `CommandHistory`
-- Нові інтерфейси реалізуються через наслідування, не через модифікацію
-- Розширення через inheritance: `FileSystemItem` → `FileItem` / `DirectoryItem`
-
-### Liskov Substitution Principle (LSP)
-- `FileItem` та `DirectoryItem` взаємозамінні через `FileSystemItem`
-- Код може працювати з масивом `FileSystemItem[]` поліморфно
-- `IFileSystemItem` дозволяє використовувати будь-який елемент однаково
-
-### Interface Segregation Principle (ISP)
-- `IFileSystemItem` — основні операції для всіх елементів
-- `ISearchable` — тільки для `DirectoryItem` (не в `FileItem`)
-- `IPrintable` — для всіх що мають вивід
-- Клієнти залежать від мінімально необхідних інтерфейсів
-
-### Dependency Inversion Principle (DIP)
-- `FileSystemProxy` залежить від `ICommand` інтерфейсу, не від конкретних команд
-- `CommandHistory` ін'єкується в `Proxy` конструктором (не створюється всередині)
-- Бізнес-логіка залежить від абстракцій, не від деталей
-
-## Як запустити
-
-### Запуск демонстрації:
-```bash
-cd FileSystemEmulator
-dotnet run --project FileSystemEmulator.App
-```
-
-### Запуск тестів:
-```bash
-dotnet test
-# 27 тестів успішно пройшли
-```
-
-### Збірка:
 ```bash
 dotnet build
 ```
 
-## Приклади використання
+### Запуск програми
 
-### Створення структури:
-```csharp
-var disk = new DiskVolume("C:\\", 1000000);
-var docs = new DirectoryItem("Documents");
-var file = new FileItem("readme.txt", Encoding.UTF8.GetBytes("Hello"));
-
-disk.Root.Add(docs);
-docs.Add(file);
+```bash
+dotnet run --project FileSystemEmulator.App
 ```
 
-### Пошук файлів:
-```csharp
-var results = docs.Search("readme").ToList();
-// results = [readme.txt]
+### Запуск тестів
+
+```bash
+dotnet test
 ```
 
-### Команди з Undo:
-```csharp
-var history = new CommandHistory();
-var copyCmd = new CopyCommand(file, backupDir);
-history.Execute(copyCmd);  // копіює файл
-history.Undo();            // скасовує копіювання
-```
+## Бізнес-правила
 
-### Проверка прав доступу:
-```csharp
-var proxy = new FileSystemProxy(history);
-var user = new FileSystemUser("alice", UserRole.User);
+### Файли та каталоги
 
-proxy.GrantPermission(user, docs, AccessRight.Read);
-proxy.Delete(file, user);  // кидає AccessDeniedException
-```
+1. Файл має ім'я, розширення, розмір та дату створення
+2. Каталог рекурсивно містить файли та інші каталоги (Composite паттерн)
+3. Видалення каталога видаляє всі вложені елементи
+4. Копіювання створює нову ієрархію з новими ID
 
-### Серіалізація:
-```csharp
-SerializationService.SaveToJson(disk, "disk_backup.json");
-var loadedDisk = SerializationService.LoadFromJson("disk_backup.json");
-```
+### Права доступу
 
-## Тестування
+1. Користувач має роль та набір прав (Read, Write, Execute, Delete)
+2. FileSystemProxy перевіряє права перед кожною операцією
+3. Адміністратор має всі права без перевірок
+4. Гість має тільки права на читання
+5. Операції без прав кидають AccessDeniedException
 
-Проєкт покривається 27 xUnit тестами:
-- **FileItemTests** (6 тестів) — тестування файлів
-- **DirectoryItemTests** (8 тестів) — рекурсивні операції
-- **CommandHistoryTests** (5 тестів) — команди та Undo
-- **CommandTests** (6 тестів) — Copy, Move, Delete
-- **FileSystemProxyTests** (2 тести) — права доступу
+### Команди з Undo
 
-Запуск: `dotnet test`
+1. Кожна операція (Copy, Move, Delete) реалізує ICommand
+2. CommandHistory зберігає до 20 команд в стеку
+3. Undo скасовує операцію та відновлює попередній стан
+4. Команди можуть бути скасовані в будь-якому порядку
 
-## Що можна покращити
+## Документація
 
-- [ ] Реалізувати повний парсинг шляхів (C:\Folder\File.txt)
-- [ ] Додати серіалізацію у XML
-- [ ] Реалізувати більш складні правила перевірки доступу (chmod-style)
-- [ ] Додати кешування розмірів каталогів для оптимізації
-- [ ] Реалізувати симlinkи та shortcuts
-- [ ] Додати trash/recycle для м'якого видалення
-- [ ] Реалізувати version control для файлів
-- [ ] Додати квоти на простір для користувачів
-
-## Технологічний стек
-
-- C# 13
-- .NET 9
-- xUnit для тестування
-- Moq для мокування
-- System.Text.Json для серіалізації
+- [Архітектура](docs/architecture.md)
+- [Диаграма класів](docs/class-diagram.md)
+- [Діаграми послідовності](docs/sequence-diagrams.md)
+- [Стратегія тестування](docs/test-strategy.md)
+- [Результати тестів](docs/TESTING.md)
+- [Бэклог](docs/backlog.md)
