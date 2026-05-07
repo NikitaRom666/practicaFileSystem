@@ -1,100 +1,170 @@
 # Sequence Diagrams - FileSystem Emulator
 
-## Diagram 1: Копіювання Файлу
+## Diagram 1: Копіювання Файлу з Undo
 
-```
-User -> Program: Copy(file, destination)
-Program -> FileSystemProxy: Copy(file, user, destination)
-FileSystemProxy -> FileSystemProxy: CheckAccess(user, file, Write)
-FileSystemProxy -> UserPermission: HasRight(Write)
-UserPermission -> UserPermission: Verify permissions
-UserPermission -> FileSystemProxy: true
-FileSystemProxy -> CopyCommand: new CopyCommand(file, dest)
-CopyCommand -> FileSystemItem: Clone/Create new item
-FileSystemItem -> FileSystemItem: Generate new ID
-FileSystemItem -> FileSystemItem: Copy metadata
-FileSystemItem -> CopyCommand: newItem
-CopyCommand -> DirectoryItem: Add(newItem)
-DirectoryItem -> DirectoryItem: items.Add(newItem)
-CopyCommand -> CommandHistory: Execute(copyCmd)
-CommandHistory -> CommandHistory: stack.Push(cmd)
-CommandHistory -> Program: Success
-Program -> User: File copied successfully
-```
-
-## Diagram 2: Видалення з Undo
-
-```
-User -> Program: Delete(file)
-Program -> FileSystemProxy: Delete(file, user)
-FileSystemProxy -> FileSystemProxy: CheckAccess(user, file, Delete)
-FileSystemProxy -> UserPermission: HasRight(Delete)
-UserPermission -> FileSystemProxy: true
-FileSystemProxy -> DeleteCommand: new DeleteCommand(file, parent)
-DeleteCommand -> DeleteCommand: SaveState(parent, file)
-DeleteCommand -> DirectoryItem: Remove(file)
-DirectoryItem -> DirectoryItem: items.Remove(file)
-DeleteCommand -> CommandHistory: Execute(deleteCmd)
-CommandHistory -> CommandHistory: stack.Push(deleteCmd)
-CommandHistory -> Program: Success
-Program -> User: File deleted
-
-User -> Program: Undo()
-Program -> CommandHistory: Undo()
-CommandHistory -> CommandHistory: cmd = stack.Pop()
-CommandHistory -> DeleteCommand: Undo()
-DeleteCommand -> DeleteCommand: RestoreState()
-DeleteCommand -> DirectoryItem: Add(file) - from saved state
-DirectoryItem -> DirectoryItem: items.Add(file)
-CommandHistory -> Program: Success
-Program -> User: Deletion undone
+```mermaid
+sequenceDiagram
+    actor User
+    participant Program
+    participant FileSystemProxy
+    participant CommandHistory
+    participant CopyCommand
+    participant DirectoryItem
+    
+    User->>Program: Копіювати readme.txt в Backup
+    Program->>FileSystemProxy: Copy(file, backupDir, user)
+    FileSystemProxy->>FileSystemProxy: CheckAccess(user, file, Write)
+    Note over FileSystemProxy: Перевірка прав доступу
+    FileSystemProxy->>CommandHistory: Execute(copyCmd)
+    CommandHistory->>CopyCommand: Execute()
+    CopyCommand->>FileItem: Clone()
+    CopyCommand->>DirectoryItem: Add(clonedFile)
+    Note over CommandHistory: Команда збережена в стек
+    Program->>User: ✓ Копіювання виконано
+    
+    User->>Program: Undo
+    Program->>CommandHistory: Undo()
+    CommandHistory->>CopyCommand: Undo()
+    CopyCommand->>DirectoryItem: Remove(clonedFile)
+    Note over CommandHistory: Команда видалена зі стеку
+    Program->>User: ✓ Копіювання скасовано
 ```
 
-## Diagram 3: Контроль Доступу
+## Diagram 2: Переміщення (Move) Файлу
 
+```mermaid
+sequenceDiagram
+    actor User
+    participant Program
+    participant FileSystemProxy
+    participant CommandHistory
+    participant MoveCommand
+    participant SourceDir
+    participant DestDir
+    
+    User->>Program: Переміститіти config.json в Archive
+    Program->>FileSystemProxy: Move(file, destDir, user)
+    FileSystemProxy->>FileSystemProxy: CheckAccess(user, file, Write)
+    Note over FileSystemProxy: Перевірка прав доступу
+    FileSystemProxy->>CommandHistory: Execute(moveCmd)
+    CommandHistory->>MoveCommand: Execute()
+    MoveCommand->>SourceDir: Remove(file)
+    Note over SourceDir: Файл видалено з Documents
+    MoveCommand->>DestDir: Add(file)
+    Note over DestDir: Файл додано в Archive
+    Note over CommandHistory: Команда збережена
+    Program->>User: ✓ Переміщення виконано
 ```
-Admin User:
-User -> Program: Delete(file)
-Program -> FileSystemProxy: Delete(file, adminUser)
-FileSystemProxy -> FileSystemProxy: CheckAccess(adminUser, file, Delete)
-FileSystemProxy -> UserPermission: HasRight(Delete)
-UserPermission -> FileSystemUser: GetRole()
-FileSystemUser -> UserPermission: Admin
-UserPermission -> FileSystemProxy: true (Admin has all rights)
-FileSystemProxy -> Program: Access Granted
-Program -> Program: Execute delete operation
-Program -> User: Success
 
-Regular User:
-User -> Program: Delete(file)
-Program -> FileSystemProxy: Delete(file, regularUser)
-FileSystemProxy -> FileSystemProxy: CheckAccess(regularUser, file, Delete)
-FileSystemProxy -> UserPermission: HasRight(Delete)
-UserPermission -> UserPermission: Check specific rights
-UserPermission -> FileSystemProxy: false (User no Delete right)
-FileSystemProxy -> FileSystemProxy: throw AccessDeniedException
-FileSystemProxy -> Program: Access Denied
-Program -> User: Error: Access Denied
+## Diagram 3: Видалення (Delete) з Undo
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant Program
+    participant FileSystemProxy
+    participant CommandHistory
+    participant DeleteCommand
+    participant DirectoryItem
+    
+    User->>Program: Видалити notes.txt
+    Program->>FileSystemProxy: Delete(file, user)
+    FileSystemProxy->>FileSystemProxy: CheckAccess(user, file, Write)
+    Note over FileSystemProxy: Перевірка прав доступу
+    FileSystemProxy->>CommandHistory: Execute(deleteCmd)
+    CommandHistory->>DeleteCommand: Execute()
+    DeleteCommand->>DeleteCommand: SaveState(parent, file, index)
+    Note over DeleteCommand: Зберегти позицію для Undo
+    DeleteCommand->>DirectoryItem: Remove(file)
+    Note over CommandHistory: Команда збережена
+    Program->>User: ✓ Видалення виконано
+    
+    User->>Program: Undo
+    Program->>CommandHistory: Undo()
+    CommandHistory->>DeleteCommand: Undo()
+    DeleteCommand->>DirectoryItem: Add(file) на попередню позицію
+    Note over DeleteCommand: Файл відновлено
+    Program->>User: ✓ Видалення скасовано
 ```
 
-## Diagram 4: Пошук Файлів (Рекурсивний)
+## Diagram 4: Контроль Доступу - Proxy Pattern
 
+```mermaid
+sequenceDiagram
+    actor Admin as Admin
+    actor Guest as Guest
+    participant FileSystemProxy
+    participant UserPermission
+    participant FileItem
+    
+    Admin->>FileSystemProxy: WriteContent(file, data)
+    FileSystemProxy->>FileSystemProxy: CheckAccess(admin, file, Write)
+    Note over FileSystemProxy: Admin завжди має всі права
+    FileSystemProxy->>FileItem: Content = data
+    FileSystemProxy->>Admin: ✓ Success
+    
+    Guest->>FileSystemProxy: WriteContent(file, data)
+    FileSystemProxy->>FileSystemProxy: CheckAccess(guest, file, Write)
+    FileSystemProxy->>UserPermission: HasRight(Write)
+    Note over UserPermission: Guest має тільки Read
+    FileSystemProxy->>FileSystemProxy: throw AccessDeniedException
+    FileSystemProxy->>Guest: ✗ Access Denied: Guest не має прав Write
 ```
-User -> Program: Search("*.pdf")
-Program -> FileSystemQueryService: GetFilesByExtension("pdf")
-FileSystemQueryService -> DirectoryItem: Search(".pdf")
-DirectoryItem -> DirectoryItem: CheckCurrentLevel()
-DirectoryItem -> FileItem: Matches pattern?
-FileItem -> DirectoryItem: true
-DirectoryItem -> DirectoryItem: AddToResults(file1)
-DirectoryItem -> DirectoryItem: IterateSubdirectories()
-DirectoryItem -> DirectoryItem: For each subdirectory
-DirectoryItem -> DirectoryItem: Search(".pdf") - Recursive
-DirectoryItem -> FileItem: Matches pattern?
-FileItem -> DirectoryItem: true
-DirectoryItem -> DirectoryItem: AddToResults(file2)
-DirectoryItem -> DirectoryItem: MoreSubdirectories?
-DirectoryItem -> DirectoryItem: Continue recursion...
+
+## Diagram 5: Пошук Файлів (LINQ + Composite)
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant Program
+    participant DirectoryItem
+    participant QueryService
+    participant LINQ
+    
+    User->>Program: Пошук "readme"
+    Program->>DirectoryItem: Search("readme")
+    DirectoryItem->>DirectoryItem: IterateChildren (Composite)
+    loop Рекурсивно по всій ієрархії
+        DirectoryItem->>DirectoryItem: Перевіритеї поточний рівень
+        DirectoryItem->>FileItem: Name.Contains("readme")?
+        alt Match знайдено
+            DirectoryItem->>DirectoryItem: AddToResults
+        end
+        DirectoryItem->>DirectoryItem: Search subdirectories
+    end
+    DirectoryItem->>LINQ: IEnumerable of matches
+    LINQ->>Program: Filter + OrderBy results
+    Program->>User: readme.txt знайдено в Documents/
+```
+
+## Diagram 6: Серіалізація (Save/Load JSON)
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant Program
+    participant SerializationService
+    participant JsonSerializer
+    participant FileSystem
+    
+    User->>Program: SaveToJson(disk, "backup.json")
+    Program->>SerializationService: SaveToJson(disk)
+    SerializationService->>SerializationService: ToDiskVolumeDto(disk)
+    Note over SerializationService: Трансформація об'єктів в DTO
+    SerializationService->>JsonSerializer: Serialize(dto)
+    JsonSerializer->>FileSystem: WriteAllText("backup.json")
+    FileSystem->>User: ✓ backup.json (2264 байт)
+    
+    User->>Program: LoadFromJson("backup.json")
+    Program->>SerializationService: LoadFromJson()
+    SerializationService->>FileSystem: ReadAllText("backup.json")
+    FileSystem->>JsonSerializer: Deserialize(json)
+    JsonSerializer->>SerializationService: FileSystemItemDto[]
+    SerializationService->>SerializationService: FromDiskVolumeDto()
+    Note over SerializationService: Восстановлення розмірів файлів
+    SerializationService->>Program: DiskVolume (завантажено)
+    Program->>User: ✓ Диск завантажено з backup.json
+```
 DirectoryItem -> FileSystemQueryService: results = [file1, file2, ...]
 FileSystemQueryService -> Program: IEnumerable<FileItem>
 Program -> User: Found 3 matching files

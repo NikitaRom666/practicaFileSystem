@@ -35,7 +35,7 @@ FileSystemEmulator.Tests/
 
 ### Вимоги
 
-- .NET 9 SDK
+- .NET 8 SDK
 - xUnit для тестів
 - Moq для мокування
 
