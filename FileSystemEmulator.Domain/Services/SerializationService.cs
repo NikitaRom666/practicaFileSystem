@@ -146,7 +146,17 @@ public class SerializationService
     /// </summary>
     private static FileItem FromFileDto(FileItemDto dto)
     {
-        return new FileItem(dto.Name);
+        // Відновлюємо файл з правильним розміром (спеціальні байти для заповнення)
+        byte[] content = new byte[dto.SizeBytes];
+        if (dto.SizeBytes > 0)
+        {
+            // Заповнюємо байти для точного розміру
+            for (int i = 0; i < content.Length; i++)
+                content[i] = (byte)(i % 256);
+        }
+        
+        var file = new FileItem(dto.Name, content);
+        return file;
     }
 
     /// <summary>

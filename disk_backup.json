@@ -3,16 +3,16 @@
   "totalSpace": 1000000,
   "root": {
     "name": "C:",
-    "createdAt": "2026-05-07T12:34:36.0992714+03:00",
-    "modifiedAt": "2026-05-07T12:34:36.1147642+03:00",
+    "createdAt": "2026-05-07T12:37:46.9014164+03:00",
+    "modifiedAt": "2026-05-07T12:37:46.9141406+03:00",
     "children": [
       {
         "itemType": "directory",
         "file": null,
         "directory": {
           "name": "Documents",
-          "createdAt": "2026-05-07T12:34:36.1083341+03:00",
-          "modifiedAt": "2026-05-07T12:34:36.1172811+03:00",
+          "createdAt": "2026-05-07T12:37:46.9084579+03:00",
+          "modifiedAt": "2026-05-07T12:37:46.9156856+03:00",
           "children": [
             {
               "itemType": "file",
@@ -20,8 +20,8 @@
                 "name": "readme.txt",
                 "extension": "txt",
                 "sizeBytes": 11,
-                "createdAt": "2026-05-07T12:34:36.108468+03:00",
-                "modifiedAt": "2026-05-07T12:34:36.1084687+03:00"
+                "createdAt": "2026-05-07T12:37:46.9085889+03:00",
+                "modifiedAt": "2026-05-07T12:37:46.9085896+03:00"
               },
               "directory": null
             },
@@ -31,8 +31,8 @@
                 "name": "notes.txt",
                 "extension": "txt",
                 "sizeBytes": 15,
-                "createdAt": "2026-05-07T12:34:36.1084695+03:00",
-                "modifiedAt": "2026-05-07T12:34:36.1084696+03:00"
+                "createdAt": "2026-05-07T12:37:46.9085905+03:00",
+                "modifiedAt": "2026-05-07T12:37:46.9085906+03:00"
               },
               "directory": null
             },
@@ -42,8 +42,8 @@
                 "name": "config.json",
                 "extension": "json",
                 "sizeBytes": 14,
-                "createdAt": "2026-05-07T12:34:36.1084698+03:00",
-                "modifiedAt": "2026-05-07T12:34:36.1084699+03:00"
+                "createdAt": "2026-05-07T12:37:46.9085908+03:00",
+                "modifiedAt": "2026-05-07T12:37:46.9085909+03:00"
               },
               "directory": null
             }
@@ -55,8 +55,8 @@
         "file": null,
         "directory": {
           "name": "Backup",
-          "createdAt": "2026-05-07T12:34:36.114135+03:00",
-          "modifiedAt": "2026-05-07T12:34:36.1174913+03:00",
+          "createdAt": "2026-05-07T12:37:46.9136385+03:00",
+          "modifiedAt": "2026-05-07T12:37:46.9157988+03:00",
           "children": []
         }
       },
@@ -65,8 +65,8 @@
         "file": null,
         "directory": {
           "name": "Archive",
-          "createdAt": "2026-05-07T12:34:36.1147596+03:00",
-          "modifiedAt": "2026-05-07T12:34:36.1172777+03:00",
+          "createdAt": "2026-05-07T12:37:46.9141374+03:00",
+          "modifiedAt": "2026-05-07T12:37:46.9156811+03:00",
           "children": []
         }
       }
