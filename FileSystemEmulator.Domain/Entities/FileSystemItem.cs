@@ -1,12 +1,14 @@
 namespace FileSystemEmulator.Domain.Entities;
 
 using FileSystemEmulator.Domain.Interfaces;
+using FileSystemEmulator.Domain.Patterns.Creational;
 
 /// <summary>
 /// Абстрактна база для файлів та каталогів
 /// </summary>
 public abstract class FileSystemItem : IFileSystemItem, IPrintable
 {
+    public Guid Id { get; }
     protected string _name;
     private DateTime _createdAt;
     private DateTime _modifiedAt;
@@ -32,9 +34,13 @@ public abstract class FileSystemItem : IFileSystemItem, IPrintable
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException("Ім'я не може бути порожним");
         
+        Id = Guid.NewGuid();
         _name = name;
         _createdAt = DateTime.Now;
         _modifiedAt = DateTime.Now;
+
+        // реєструємо елемент одразу, бо потім зручніше шукати все по одному списку
+        FileSystemRegistry.Instance.Register(this);
     }
 
     /// <summary>

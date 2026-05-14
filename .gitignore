@@ -1,0 +1,6 @@
+disk_backup.json
+*.json.bak
+bin/
+obj/
+.vs/
+*.user

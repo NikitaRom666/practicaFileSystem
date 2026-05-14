@@ -1,10 +1,11 @@
 namespace FileSystemEmulator.Domain.Entities;
 
 using FileSystemEmulator.Domain.Interfaces;
+using FileSystemEmulator.Domain.Exceptions;
 
-/// <summary>
+
 /// Каталог — реалізація Composite патерну
-/// </summary>
+
 public class DirectoryItem : FileSystemItem, ISearchable
 {
     private List<FileSystemItem> _children = [];
@@ -28,9 +29,9 @@ public class DirectoryItem : FileSystemItem, ISearchable
         Parent = other.Parent;
     }
 
-    /// <summary>
+   
     /// Додає елемент до каталогу
-    /// </summary>
+
     public void Add(FileSystemItem item)
     {
         if (item == null)
@@ -41,17 +42,17 @@ public class DirectoryItem : FileSystemItem, ISearchable
             throw new InvalidOperationException("Не можна додати каталог самого в себе");
         
         // перевіряємо що такого елемента немає
-        if (_children.Any(c => c.Name == item.Name))
-            throw new InvalidOperationException($"Елемент '{item.Name}' вже існує у цьому каталозі");
+        if (_children.Any(c => string.Equals(c.Name, item.Name, StringComparison.OrdinalIgnoreCase)))
+            throw new ItemAlreadyExistsException($"Елемент '{item.Name}' вже існує у цьому каталозі");
         
         item.Parent = this;
         _children.Add(item);
         Touch();
     }
 
-    /// <summary>
+    
     /// Видаляє елемент з каталогу
-    /// </summary>
+    
     public bool Remove(FileSystemItem item)
     {
         var result = _children.Remove(item);
@@ -63,17 +64,17 @@ public class DirectoryItem : FileSystemItem, ISearchable
         return result;
     }
 
-    /// <summary>
+    
     /// Розраховує загальний розмір каталогу включаючи всі піделементи (Composite)
-    /// </summary>
+    
     public override long GetSize()
     {
         return _children.Sum(child => child.GetSize());
     }
 
-    /// <summary>
+    
     /// Виводить дерево каталогу з відступами (Composite)
-    /// </summary>
+   
     public override void Print(int indent = 0)
     {
         var spaces = new string(' ', indent);
@@ -84,9 +85,9 @@ public class DirectoryItem : FileSystemItem, ISearchable
         }
     }
 
-    /// <summary>
+    
     /// Рекурсивний пошук за шаблоном імені (Composite)
-    /// </summary>
+    
     public IEnumerable<FileSystemItem> Search(string pattern)
     {
         var results = new List<FileSystemItem>();
@@ -105,17 +106,17 @@ public class DirectoryItem : FileSystemItem, ISearchable
         return results;
     }
 
-    /// <summary>
+    
     /// Доступ до дитини за іменем через індексатор
-    /// </summary>
-    public FileSystemItem? this[string name]
+    
+    public IFileSystemItem? this[string name]
     {
-        get => _children.FirstOrDefault(c => c.Name == name);
+        get => _children.FirstOrDefault(c => string.Equals(c.Name, name, StringComparison.OrdinalIgnoreCase));
     }
 
-    /// <summary>
+    
     /// Перевантаження оператора + для додавання елемента
-    /// </summary>
+    
     public static DirectoryItem operator +(DirectoryItem dir, FileSystemItem item)
     {
         dir.Add(item);
@@ -124,7 +125,7 @@ public class DirectoryItem : FileSystemItem, ISearchable
 
     public override bool Validate()
     {
-        // перевіряємо що ім'я не порожне та усі діти валідні
+       
         if (string.IsNullOrWhiteSpace(_name))
             return false;
         

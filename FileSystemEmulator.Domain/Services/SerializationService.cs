@@ -2,11 +2,12 @@ namespace FileSystemEmulator.Domain.Services;
 
 using System.Text.Json;
 using FileSystemEmulator.Domain.Entities;
+using FileSystemEmulator.Domain.Interfaces;
 
 /// <summary>
 /// Сервіс для серіалізації та десеріалізації файлової системи
 /// </summary>
-public class SerializationService
+public class SerializationService : ISerializationService
 {
     private static JsonSerializerOptions GetJsonOptions() => new()
     {
@@ -14,26 +15,27 @@ public class SerializationService
         WriteIndented = true
     };
 
-    /// <summary>
-    /// Зберігає диск у JSON
-    /// </summary>
-    public static void SaveToJson(DiskVolume volume, string filePath)
+    // instance-обгортки для facade, бо там зручніше працювати через об'єкт
+    public void Save(DiskVolume volume, string filePath) => SaveToJson(volume, filePath);
+    public DiskVolume Load(string filePath) => LoadFromJson(filePath);
+
+    public void SaveToJson(DiskVolume volume, string filePath)
     {
         var dto = ToDiskVolumeDto(volume);
         var json = JsonSerializer.Serialize(dto, GetJsonOptions());
-        File.WriteAllText(filePath, json);
+
+        using var writer = new StreamWriter(filePath);
+        writer.Write(json);
         Console.WriteLine($"[SAVE] Диск збережено: {filePath}");
     }
 
-    /// <summary>
-    /// Завантажує диск з JSON
-    /// </summary>
-    public static DiskVolume LoadFromJson(string filePath)
+    public DiskVolume LoadFromJson(string filePath)
     {
         if (!File.Exists(filePath))
             throw new FileNotFoundException($"Файл не знайдено: {filePath}");
 
-        var json = File.ReadAllText(filePath);
+        using var reader = new StreamReader(filePath);
+        var json = reader.ReadToEnd();
         var dto = JsonSerializer.Deserialize<DiskVolumeDto>(json, GetJsonOptions()) 
             ?? throw new InvalidOperationException("Не вдалось десеріалізувати диск");
         

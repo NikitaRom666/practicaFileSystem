@@ -1,66 +1,116 @@
 namespace FileSystemEmulator.Tests;
 
+using System.Text;
 using Xunit;
 using FileSystemEmulator.Domain.Entities;
-using FileSystemEmulator.Domain.Patterns.Proxy;
 using FileSystemEmulator.Domain.Exceptions;
+using FileSystemEmulator.Domain.Patterns.Command;
+using FileSystemEmulator.Domain.Patterns.Proxy;
+using Moq;
 
 public class FileSystemProxyTests
 {
     [Fact]
-    public void GetItem_AdminUser_AlwaysSucceeds()
+    public void GetItem_AdminUser_ReturnsNullWithoutException()
     {
-        // Arrange
         var proxy = new FileSystemProxy();
         var admin = new FileSystemUser("admin", UserRole.Admin);
-        var item = new FileItem("file.txt");
 
-        // Act & Assert - Admin має FullControl, тому операція повинна пройти
-        Assert.NotNull(admin); // простий тест що адміністратор створено
+        var result = proxy.GetItem("path/to/secret.txt", admin);
+
+        Assert.Null(result);
     }
 
     [Fact]
     public void GetItem_UserWithoutRight_ThrowsAccessDeniedException()
     {
-        // Arrange
         var proxy = new FileSystemProxy();
         var user = new FileSystemUser("bob", UserRole.User);
-        var item = new FileItem("secret.txt");
 
-        // Act & Assert
-        Assert.Throws<AccessDeniedException>(() => 
+        Assert.Throws<AccessDeniedException>(() =>
             proxy.GetItem("path/to/secret.txt", user));
     }
 
     [Fact]
     public void Delete_AdminUser_AlwaysSucceeds()
     {
-        // Arrange
-        var history = new FileSystemEmulator.Domain.Patterns.Command.CommandHistory();
+        var history = new CommandHistory();
         var proxy = new FileSystemProxy(history);
         var admin = new FileSystemUser("admin", UserRole.Admin);
         var dir = new DirectoryItem("folder");
         var file = new FileItem("file.txt");
         dir.Add(file);
 
-        // Act
         proxy.Delete(file, admin);
 
-        // Assert
         Assert.Empty(dir.Children);
     }
 
     [Fact]
-    public void GrantPermission_UserCanPerformAction()
+    public void Undo_AdminUser_ReplaysMockCommand()
     {
-        // Arrange
+        var history = new CommandHistory();
+        var proxy = new FileSystemProxy(history);
+        var admin = new FileSystemUser("admin", UserRole.Admin);
+        var mockCommand = new Mock<ICommand>();
+        mockCommand.SetupGet(c => c.Description).Returns("Mock command");
+
+        history.Execute(mockCommand.Object);
+
+        proxy.Undo(admin);
+
+        mockCommand.Verify(c => c.Execute(), Times.Once);
+        mockCommand.Verify(c => c.Undo(), Times.Once);
+    }
+
+    [Fact]
+    public void Undo_NonAdminUser_ThrowsAccessDeniedException()
+    {
+        var history = new CommandHistory();
+        var proxy = new FileSystemProxy(history);
+        var user = new FileSystemUser("bob", UserRole.User);
+        var mockCommand = new Mock<ICommand>();
+        mockCommand.SetupGet(c => c.Description).Returns("Mock command");
+
+        history.Execute(mockCommand.Object);
+
+        Assert.Throws<AccessDeniedException>(() => proxy.Undo(user));
+        mockCommand.Verify(c => c.Undo(), Times.Never);
+    }
+
+    [Fact]
+    public void GrantPermission_UserCanWriteContent()
+    {
         var proxy = new FileSystemProxy();
         var user = new FileSystemUser("alice", UserRole.User);
         var file = new FileItem("document.txt");
-        proxy.GrantPermission(user, file, AccessRight.Read);
+        var content = Encoding.UTF8.GetBytes("updated");
 
-        // Act & Assert
-        // Перевіримо що після надання прав операція пройде
-        Assert.NotNull(proxy);
+        proxy.GrantPermission(user, file, AccessRight.Write);
+        proxy.WriteContent(file, content, user);
+
+        Assert.Equal(content, file.Content);
+    }
+
+    [Fact]
+    public void Copy_SameSourceAndDestination_ThrowsInvalidFileSystemOperationException()
+    {
+        var proxy = new FileSystemProxy();
+        var admin = new FileSystemUser("admin", UserRole.Admin);
+        var folder = new DirectoryItem("folder");
+
+        Assert.Throws<InvalidFileSystemOperationException>(() => proxy.Copy(folder, folder, admin));
+    }
+
+    [Fact]
+    public void Copy_WhenDiskIsFull_ThrowsDiskFullException()
+    {
+        var proxy = new FileSystemProxy();
+        var admin = new FileSystemUser("admin", UserRole.Admin);
+        var disk = new DiskVolume("C:\\", 4);
+        var destination = disk.Root;
+        var file = new FileItem("big.txt", Encoding.UTF8.GetBytes("12345"));
+
+        Assert.Throws<DiskFullException>(() => proxy.Copy(file, destination, admin));
     }
 }

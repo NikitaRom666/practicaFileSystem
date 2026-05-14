@@ -1,13 +1,22 @@
-# Діаграма класів
-
-## Сутності
+# FileSystemEmulator Class Diagram
 
 ```mermaid
 classDiagram
+    class IFileSystemItem {
+        <<interface>>
+    }
+    class IPrintable {
+        <<interface>>
+    }
+    class ISearchable {
+        <<interface>>
+    }
     class FileSystemItem {
         <<abstract>>
+        +Guid Id
         +string Name
         +DateTime CreatedAt
+        +DateTime ModifiedAt
         +GetSize() long
         +Print() void
         +GetFullPath() string
@@ -15,91 +24,181 @@ classDiagram
     class FileItem {
         +byte[] Content
         +string Extension
-        +Clone() FileItem
+        +operator ==
+        +operator !=
     }
     class DirectoryItem {
-        +List~FileSystemItem~ Children
-        +Add(item) void
-        +Remove(item) bool
-        +Search(name) IEnumerable
+        +Children
+        +this[string name]
+        +Add(item)
+        +Remove(item)
+        +Search(pattern)
     }
     class DiskVolume {
-        +string Label
-        +long TotalSpace
-        +long FreeSpace
-        +PrintTree() void
+        +Label
+        +TotalSpace
+        +Root
+        +PrintTree()
     }
+    class FileSystemUser {
+        +Name
+        +Role
+        +IsAdmin
+    }
+    class UserPermission {
+        +User
+        +Item
+        +Rights
+    }
+    class AccessRight {
+        <<enumeration>>
+    }
+    class ICommand {
+        <<interface>>
+        +Execute()
+        +Undo()
+        +Description
+    }
+    class CopyCommand
+    class MoveCommand
+    class DeleteCommand
+    class CommandHistory {
+        +Execute(command)
+        +Undo()
+        +History
+    }
+    class IFileSystemProxy {
+        <<interface>>
+    }
+    class FileSystemProxy {
+        +GrantPermission()
+        +GetItem()
+        +WriteContent()
+        +Delete()
+        +Copy()
+        +Move()
+        +Undo()
+    }
+    class FileSystemRepository~T~ {
+        +Add(item)
+        +Remove(item)
+        +GetById(predicate)
+        +GetAll()
+    }
+    class FileSystemItemFactory {
+        +Create(type, name)
+        +CreateFile(name, extension, content)
+        +CreateDirectory(name)
+    }
+    class FileSystemFactory {
+        +CreateFromConfig(json)
+    }
+    class FileSystemRegistry {
+        +Instance
+        +Register(item)
+        +Unregister(id)
+        +GetById(id)
+        +GetAll()
+    }
+    class IFileSystemObserver {
+        <<interface>>
+    }
+    class FileSystemEventSource {
+        +Subscribe(observer)
+        +Unsubscribe(observer)
+    }
+    class ConsoleLogger
+    class AuditLog {
+        +Entries
+        +GetLog()
+    }
+    class ISearchStrategy {
+        <<interface>>
+        +Search(root, query)
+    }
+    class SearchByNameStrategy
+    class SearchByExtensionStrategy
+    class SearchByPatternStrategy
+    class FileSystemSearcher {
+        +SetStrategy(strategy)
+        +Search(root, query)
+    }
+    class IFileDecorator {
+        <<interface>>
+    }
+    class CompressedFileDecorator {
+        +Size
+        +GetSize()
+        +GetFullPath()
+    }
+    class EncryptedFileDecorator {
+        +GetContent()
+        +GetSize()
+        +GetFullPath()
+    }
+    class SerializationService {
+        +Save()
+        +Load()
+    }
+    class FileSystemFacade {
+        +CopyItem()
+        +MoveItem()
+        +DeleteItem()
+        +UndoLastOperation()
+        +Search(query)
+        +SaveDisk(disk, path)
+        +LoadDisk(path)
+        +PrintTree(root)
+    }
+
+    IFileSystemItem <|.. FileSystemItem
+    IPrintable <|.. FileSystemItem
+    ISearchable <|.. DirectoryItem
     FileSystemItem <|-- FileItem
     FileSystemItem <|-- DirectoryItem
     DiskVolume o-- DirectoryItem
     DirectoryItem o-- FileSystemItem
-```
+    FileSystemUser --> UserRole
+    UserPermission --> FileSystemUser
+    UserPermission --> FileSystemItem
+    AccessRight --> UserPermission
 
-## Command Pattern
-
-```mermaid
-classDiagram
-    class ICommand {
-        <<interface>>
-        +Execute() void
-        +Undo() void
-    }
-    class CopyCommand {
-        -FileSystemItem Source
-        -DirectoryItem Destination
-        +Execute() void
-        +Undo() void
-    }
-    class MoveCommand {
-        -FileSystemItem Source
-        -DirectoryItem PreviousParent
-        +Execute() void
-        +Undo() void
-    }
-    class DeleteCommand {
-        -FileSystemItem Item
-        -int PreviousIndex
-        +Execute() void
-        +Undo() void
-    }
-    class CommandHistory {
-        -Stack~ICommand~ _history
-        +Execute(cmd) void
-        +Undo() void
-    }
     ICommand <|.. CopyCommand
     ICommand <|.. MoveCommand
     ICommand <|.. DeleteCommand
     CommandHistory o-- ICommand
-```
 
-## Proxy Pattern
-
-```mermaid
-classDiagram
-    class IFileSystemProxy {
-        <<interface>>
-        +GrantPermission() void
-        +WriteContent() void
-        +Delete() void
-    }
-    class FileSystemProxy {
-        -List~UserPermission~ _permissions
-        +CheckAccess() void
-        +GrantPermission() void
-        +WriteContent() void
-    }
-    class UserPermission {
-        +FileSystemUser User
-        +AccessRight Rights
-        +HasRight() bool
-    }
-    class AccessDeniedException {
-        +string UserName
-        +string RequiredRight
-    }
     IFileSystemProxy <|.. FileSystemProxy
     FileSystemProxy --> UserPermission
-    FileSystemProxy ..> AccessDeniedException
+    FileSystemProxy --> CommandHistory
+    FileSystemProxy --> FileSystemEventSource
+
+    FileSystemRepository~T~ --> FileSystemItem
+    FileSystemItemFactory --> FileItem
+    FileSystemItemFactory --> DirectoryItem
+    FileSystemFactory --> FileSystemItemFactory
+    FileSystemRegistry o-- IFileSystemItem
+
+    IFileSystemObserver <|.. ConsoleLogger
+    IFileSystemObserver <|.. AuditLog
+    FileSystemEventSource o-- IFileSystemObserver
+
+    ISearchStrategy <|.. SearchByNameStrategy
+    ISearchStrategy <|.. SearchByExtensionStrategy
+    ISearchStrategy <|.. SearchByPatternStrategy
+    FileSystemSearcher --> ISearchStrategy
+    FileSystemSearcher --> DirectoryItem
+
+    IFileDecorator --|> IFileSystemItem
+    IFileDecorator <|.. CompressedFileDecorator
+    IFileDecorator <|.. EncryptedFileDecorator
+    CompressedFileDecorator --> FileItem
+    EncryptedFileDecorator --> FileItem
+
+    FileSystemFacade --> FileSystemProxy
+    FileSystemFacade --> FileSystemSearcher
+    FileSystemFacade --> SerializationService
+    FileSystemFacade --> CommandHistory
+    FileSystemFacade --> FileSystemRegistry
 ```
 

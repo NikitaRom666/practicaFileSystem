@@ -5,6 +5,7 @@ namespace FileSystemEmulator.Domain.Interfaces;
 /// </summary>
 public interface IFileSystemItem
 {
+    Guid Id { get; }
     string Name { get; }
     DateTime CreatedAt { get; }
     DateTime ModifiedAt { get; }

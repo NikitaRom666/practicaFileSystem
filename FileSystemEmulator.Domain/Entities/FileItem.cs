@@ -63,19 +63,26 @@ public class FileItem : FileSystemItem
         sb.AppendLine($"{spaces}[FILE] {_name}");
     }
 
-    // перевантаження оператора == за іменем та розміром
+    // рівність по імені та розширенню, бо Id тут взагалі не має грати ролі
     public static bool operator ==(FileItem? left, FileItem? right)
     {
         if (ReferenceEquals(left, right))
             return true;
         if (left is null || right is null)
             return false;
-        return left._name == right._name && left.GetSize() == right.GetSize();
+
+        return string.Equals(left.Name, right.Name, StringComparison.OrdinalIgnoreCase)
+            && string.Equals(left.Extension, right.Extension, StringComparison.OrdinalIgnoreCase);
     }
 
     public static bool operator !=(FileItem? left, FileItem? right) => !(left == right);
 
     public override bool Equals(object? obj) => obj is FileItem other && this == other;
 
-    public override int GetHashCode() => HashCode.Combine(_name, _content.Length);
+    public override int GetHashCode()
+    {
+        return HashCode.Combine(
+            StringComparer.OrdinalIgnoreCase.GetHashCode(Name),
+            StringComparer.OrdinalIgnoreCase.GetHashCode(Extension));
+    }
 }

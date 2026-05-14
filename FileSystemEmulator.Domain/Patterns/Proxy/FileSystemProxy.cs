@@ -2,6 +2,7 @@ namespace FileSystemEmulator.Domain.Patterns.Proxy;
 
 using FileSystemEmulator.Domain.Entities;
 using FileSystemEmulator.Domain.Exceptions;
+using FileSystemEmulator.Domain.Patterns.Behavioral;
 using FileSystemEmulator.Domain.Patterns.Command;
 
 /// <summary>
@@ -11,10 +12,14 @@ public class FileSystemProxy : IFileSystemProxy
 {
     private List<UserPermission> _permissions = [];
     private CommandHistory _history;
+    private readonly FileSystemEventSource _eventSource;
 
-    public FileSystemProxy(CommandHistory? history = null)
+    public FileSystemEventSource EventSource => _eventSource;
+
+    public FileSystemProxy(CommandHistory? history = null, FileSystemEventSource? eventSource = null)
     {
         _history = history ?? new CommandHistory();
+        _eventSource = eventSource ?? new FileSystemEventSource();
     }
 
     /// <summary>
@@ -38,7 +43,7 @@ public class FileSystemProxy : IFileSystemProxy
     /// <summary>
     /// Перевіряє чи користувач має права на операцію
     /// </summary>
-    private void CheckAccess(FileSystemUser user, FileSystemItem item, AccessRight requiredRight)
+    private void CheckAccess(FileSystemUser user, FileSystemItem item, AccessRight requiredRight, string operation)
     {
         // Admin завжди має всі права
         if (user.IsAdmin)
@@ -49,6 +54,7 @@ public class FileSystemProxy : IFileSystemProxy
 
         if (permission == null || !permission.HasRight(requiredRight))
         {
+            _eventSource.PublishAccessDenied(operation, user.Name);
             throw new AccessDeniedException(
                 $"Користувач '{user.Name}' не має прав '{requiredRight}' на '{item.Name}'",
                 user.Name,
@@ -59,43 +65,74 @@ public class FileSystemProxy : IFileSystemProxy
 
     public FileSystemItem? GetItem(string path, FileSystemUser user)
     {
-        // пошук елемента (спрощена реалізація)
-        // TODO: реалізувати повний парсинг шляху
-        CheckAccess(user, new FileItem(path), AccessRight.Read);
+        // тут поки не буду будувати повний парсер шляху, бо це вже окремий квест
+        if (!user.IsAdmin)
+        {
+            _eventSource.PublishAccessDenied("Read", user.Name);
+            throw new AccessDeniedException(
+                $"Користувач '{user.Name}' не має прав 'Read' на '{path}'",
+                user.Name,
+                AccessRight.Read.ToString()
+            );
+        }
+
         Console.WriteLine($"[LOG] {user.Name} читає {path}");
         return null;
     }
 
     public void WriteContent(FileItem file, byte[] content, FileSystemUser user)
     {
-        CheckAccess(user, file, AccessRight.Write);
+        CheckAccess(user, file, AccessRight.Write, "Write");
         file.Content = content;
         Console.WriteLine($"[LOG] {user.Name} записав у {file.Name}");
     }
 
     public void Delete(FileSystemItem item, FileSystemUser user)
     {
-        CheckAccess(user, item, AccessRight.Write);
+        CheckAccess(user, item, AccessRight.Delete, "Delete");
         var deleteCmd = new DeleteCommand(item);
         _history.Execute(deleteCmd);
+        _eventSource.PublishDeleted(item);
         Console.WriteLine($"[LOG] {user.Name} видалив {item.Name}");
     }
 
     public void Copy(FileSystemItem item, DirectoryItem destination, FileSystemUser user)
     {
-        CheckAccess(user, item, AccessRight.Read);
-        CheckAccess(user, destination, AccessRight.Write);
+        if (ReferenceEquals(item, destination))
+            throw new InvalidFileSystemOperationException("Джерело і призначення не можуть бути одним і тим самим об'єктом");
+
+        CheckAccess(user, item, AccessRight.Read, "Copy");
+        CheckAccess(user, destination, AccessRight.Write, "Copy");
+
+        var volume = DiskVolume.TryGetFor(destination);
+        if (volume != null)
+        {
+            var requiredSpace = item.GetSize();
+            if (volume.GetUsedSpace() + requiredSpace > volume.Capacity)
+            {
+                throw new DiskFullException(
+                    $"На диску '{volume.Label}' недостатньо місця для '{item.Name}'",
+                    volume.FreeSpace,
+                    requiredSpace);
+            }
+        }
+
         var copyCmd = new CopyCommand(item, destination);
         _history.Execute(copyCmd);
+        var copiedItem = destination[item.Name];
+        if (copiedItem != null)
+            _eventSource.PublishCreated(copiedItem);
         Console.WriteLine($"[LOG] {user.Name} скопіював {item.Name}");
     }
 
     public void Move(FileSystemItem item, DirectoryItem destination, FileSystemUser user)
     {
-        CheckAccess(user, item, AccessRight.Write);
-        CheckAccess(user, destination, AccessRight.Write);
+        CheckAccess(user, item, AccessRight.Write, "Move");
+        CheckAccess(user, destination, AccessRight.Write, "Move");
+        var fromPath = item.GetFullPath();
         var moveCmd = new MoveCommand(item, destination);
         _history.Execute(moveCmd);
+        _eventSource.PublishMoved(item, fromPath, item.GetFullPath());
         Console.WriteLine($"[LOG] {user.Name} перемістив {item.Name}");
     }
 

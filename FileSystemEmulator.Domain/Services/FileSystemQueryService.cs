@@ -57,6 +57,35 @@ public class FileSystemQueryService
         return root.Search(pattern)
             .GroupBy(item => item is FileItem f ? f.Extension : "folder");
     }
+
+    /// <summary>
+    /// Об'єднує файли з їхніми батьківськими каталогами
+    /// </summary>
+    public static IEnumerable<(string Directory, string File)> JoinFilesWithDirectories(DirectoryItem root)
+    {
+        var files = root.Search("")
+            .OfType<FileItem>()
+            .Where(file => file.Parent != null);
+
+        var directories = root.Search("")
+            .OfType<DirectoryItem>();
+
+        return files.Join(
+            directories,
+            file => file.Parent!.Id,
+            directory => directory.Id,
+            (file, directory) => (directory.GetFullPath(), file.Name));
+    }
+
+    /// <summary>
+    /// Рахує сумарний розмір усіх файлів через Aggregate
+    /// </summary>
+    public static long GetTotalFileSize(DirectoryItem root)
+    {
+        return root.Search("")
+            .OfType<FileItem>()
+            .Aggregate(0L, (total, file) => total + file.GetSize());
+    }
 }
 
 /// <summary>

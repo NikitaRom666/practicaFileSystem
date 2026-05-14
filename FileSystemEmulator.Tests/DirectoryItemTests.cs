@@ -2,6 +2,7 @@ namespace FileSystemEmulator.Tests;
 
 using Xunit;
 using FileSystemEmulator.Domain.Entities;
+using FileSystemEmulator.Domain.Exceptions;
 
 public class DirectoryItemTests
 {
@@ -93,7 +94,7 @@ public class DirectoryItemTests
         dir.Add(file1);
 
         // Act & Assert
-        Assert.Throws<InvalidOperationException>(() => dir.Add(file2));
+        Assert.Throws<ItemAlreadyExistsException>(() => dir.Add(file2));
     }
 
     [Fact]

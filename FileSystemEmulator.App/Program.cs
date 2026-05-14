@@ -1,181 +1,122 @@
-﻿using FileSystemEmulator.Domain.Entities;
-using FileSystemEmulator.Domain.Services;
+using System.Text;
+using FileSystemEmulator.Domain.Entities;
+using FileSystemEmulator.Domain.Interfaces;
+using FileSystemEmulator.Domain.Patterns.Behavioral;
+using FileSystemEmulator.Domain.Patterns.Creational;
 using FileSystemEmulator.Domain.Patterns.Command;
 using FileSystemEmulator.Domain.Patterns.Proxy;
-using System.Diagnostics;
+using FileSystemEmulator.Domain.Patterns.Structural;
+using FileSystemEmulator.Domain.Services;
 
-// Демонстрація роботи системи
-Console.WriteLine("=== Емулятор файлової системи ===\n");
+Console.OutputEncoding = Encoding.UTF8;
 
-// Створення користувачів
+Console.WriteLine("=== FileSystemEmulator demo ===");
+
+var history = new CommandHistory();
+var eventSource = new FileSystemEventSource();
+var proxy = new FileSystemProxy(history, eventSource);
+var searcher = new FileSystemSearcher();
+var serialization = new SerializationService();
+var facade = new FileSystemFacade(proxy, searcher, serialization, history);
+var factory = new FileSystemItemFactory();
+
+var consoleLogger = new ConsoleLogger();
+var auditLog = new AuditLog();
+eventSource.Subscribe(consoleLogger);
+eventSource.Subscribe(auditLog);
+
 var admin = new FileSystemUser("root", UserRole.Admin);
 var user = new FileSystemUser("alice", UserRole.User);
 var guest = new FileSystemUser("guest", UserRole.Guest);
 
-// Створення диска
-var disk = new DiskVolume("C:\\", 1000000);
+Console.WriteLine($"Користувачі: {admin}, {user}, {guest}");
 
-// Додавання файлів та папок
-var docDir = new DirectoryItem("Documents");
-var file1 = new FileItem("readme.txt", System.Text.Encoding.UTF8.GetBytes("Hello World"));
-var file2 = new FileItem("notes.txt", System.Text.Encoding.UTF8.GetBytes("Important notes"));
-var file3 = new FileItem("config.json", System.Text.Encoding.UTF8.GetBytes("{\"version\": 1}"));
+Console.WriteLine("\n--- Factory Method ---");
+var disk = new DiskVolume("C:\\", 1_000_000);
+var documents = (DirectoryItem)factory.Create("directory", "Documents");
+var backups = (DirectoryItem)factory.CreateDirectory("Backup");
+var archive = (DirectoryItem)factory.CreateDirectory("Archive");
+var configFolder = (DirectoryItem)FileSystemFactory.CreateFromConfig("{\"type\":\"directory\",\"name\":\"Config\"}");
+var readme = (FileItem)factory.CreateFile("readme", "txt", Encoding.UTF8.GetBytes("Hello from factory"));
+var notes = (FileItem)factory.CreateFile("notes", ".md", Encoding.UTF8.GetBytes("Markdown note"));
+var settings = (FileItem)FileSystemFactory.CreateFromConfig("{\"type\":\"file\",\"name\":\"settings\",\"extension\":\"json\",\"content\":\"{\\\"theme\\\":\\\"forest\\\"}\"}");
+var template = (FileItem)FileSystemFactory.CreateFromConfig("{\"type\":\"file\",\"name\":\"template\",\"extension\":\".txt\",\"content\":\"factory config\"}");
 
-disk.Root.Add(docDir);
-docDir.Add(file1);
-docDir.Add(file2);
-docDir.Add(file3);
+disk.Root.Add(documents);
+disk.Root.Add(backups);
+disk.Root.Add(archive);
+disk.Root.Add(configFolder);
+documents.Add(readme);
+documents.Add(notes);
+documents.Add(settings);
+documents.Add(template);
 
-Console.WriteLine("Структура диска:");
-disk.PrintTree();
+Console.WriteLine($"Factory створив: {readme.Name}, {notes.Name}, {settings.Name}, {template.Name}");
+Console.WriteLine($"Singleton registry зараз бачить {FileSystemRegistry.Instance.GetAll().Count} елементів");
+Console.WriteLine($"Registry lookup для readme: {FileSystemRegistry.Instance.GetById(readme.Id)?.Name}");
 
-Console.WriteLine($"\nСтатистика:");
+Console.WriteLine("\n--- Decorator ---");
+var compressedReadme = new CompressedFileDecorator(readme);
+var encryptedNotes = new EncryptedFileDecorator(notes);
+Console.WriteLine($"{compressedReadme.Name} -> {compressedReadme.Size} байт");
+Console.WriteLine($"{encryptedNotes.Name} -> {Encoding.UTF8.GetString(encryptedNotes.GetContent())}");
+
+Console.WriteLine("\n--- Стартова структура ---");
+facade.PrintTree(disk.Root);
 Console.WriteLine($"Використано: {disk.UsedSpace} байт");
 Console.WriteLine($"Вільно: {disk.FreeSpace} байт");
 
-// === ДЕМОНСТРАЦІЯ GENERICS (Repository<T>) ===
-Console.WriteLine("\n--- GENERICS: Repository<T> ---");
-var repo = new FileSystemEmulator.Domain.Repository.FileSystemRepository<FileItem>();
-repo.Add(file1);
-repo.Add(file2);
-Console.WriteLine($"✓ Repository<FileItem> збереріг {repo.GetAll().Count} файли");
+Console.WriteLine("\n--- Strategy ---");
+searcher.SetStrategy(new SearchByNameStrategy());
+PrintSearchResults("Пошук за іменем 'settings.json'", facade.Search("settings.json"));
 
-// === ДЕМОНСТРАЦІЯ COMMAND PATTERN + MOVE & DELETE ===
-Console.WriteLine("\n--- COMMAND PATTERN: Copy, Move, Delete ---");
-var history = new CommandHistory();
-var backupDir = new DirectoryItem("Backup");
-disk.Root.Add(backupDir);
+searcher.SetStrategy(new SearchByExtensionStrategy());
+PrintSearchResults("Пошук за розширенням 'txt'", facade.Search("txt"));
 
-// Copy
-var copyCmd = new CopyCommand(file1, backupDir);
-history.Execute(copyCmd);
-Console.WriteLine("[CMD] Executed: Copy readme.txt to Backup");
+searcher.SetStrategy(new SearchByPatternStrategy());
+PrintSearchResults("Пошук за шаблоном '*.md'", facade.Search("*.md"));
 
-// Move
-var archiveDir = new DirectoryItem("Archive");
-disk.Root.Add(archiveDir);
-var moveCmd = new MoveCommand(file3, archiveDir);
-history.Execute(moveCmd);
-Console.WriteLine("[CMD] Executed: Move config.json to Archive");
+Console.WriteLine("\n--- Facade + Command + Undo ---");
+facade.CopyItem(readme.Id, backups.Id);
+facade.MoveItem(settings.Id, archive.Id);
+facade.DeleteItem(notes.Id);
+Console.WriteLine("Після копіювання, переміщення і видалення:");
+facade.PrintTree(disk.Root);
 
-// Delete
-var deleteCmd = new DeleteCommand(file2);
-history.Execute(deleteCmd);
-Console.WriteLine("[CMD] Executed: Delete notes.txt");
+Console.WriteLine("\nСкасовуємо останню операцію...");
+facade.UndoLastOperation();
+facade.PrintTree(disk.Root);
 
-Console.WriteLine("\nПісля всіх операцій:");
-disk.PrintTree();
+Console.WriteLine("\n--- Serialization ---");
+var backupPath = "disk_backup.json";
+facade.SaveDisk(disk, backupPath);
+Console.WriteLine($"Диск збережено у {backupPath}");
 
-// === ДЕМОНСТРАЦІЯ UNDO ===
-Console.WriteLine("\n--- UNDO операції ---");
-Console.WriteLine($"Команд в історії: {history.History.Count}");
-history.Undo();
-Console.WriteLine("[UNDO] Reverted Delete notes.txt");
-history.Undo();
-Console.WriteLine("[UNDO] Reverted Move config.json");
-history.Undo();
-Console.WriteLine("[UNDO] Reverted Copy readme.txt");
-Console.WriteLine("✓ Всі операції скасовані!\n");
+var loadedDisk = facade.LoadDisk(backupPath);
+Console.WriteLine("Завантажена структура:");
+facade.PrintTree(loadedDisk.Root);
 
-// === ДЕМОНСТРАЦІЯ PROXY + ОБРОБКА ВИНЯТКІВ ===
-Console.WriteLine("--- PROXY & ОБРОБКА ВИНЯТКІВ ---");
-var proxy = new FileSystemProxy(history);
-
-// Надання прав
-proxy.GrantPermission(user, docDir, AccessRight.Read);
-proxy.GrantPermission(admin, docDir, AccessRight.Read | AccessRight.Write);
-Console.WriteLine("✓ Права надані користувачам\n");
-
-// Спроба операції без прав (обробка винятків)
-try
+Console.WriteLine("\n--- Audit log ---");
+foreach (var entry in auditLog.GetLog())
 {
-    // Гість намагається писати (не має прав)
-    proxy.WriteContent(file1, System.Text.Encoding.UTF8.GetBytes("Hacked!"), guest);
-    Console.WriteLine("✓ Гість може писати (неправильно)");
-}
-catch (FileSystemEmulator.Domain.Exceptions.AccessDeniedException ex)
-{
-    Console.WriteLine($"✗ Винятком перехоплено: {ex.Message}");
-}
-
-// === ДЕМОНСТРАЦІЯ LINQ ===
-Console.WriteLine("\n--- LINQ: ПОШУК ТА ФІЛЬТРАЦІЯ ---");
-Console.WriteLine("Усі файли в Documents (LINQ Select):");
-var allFiles = docDir.Search("").OfType<FileItem>().ToList();
-foreach (var f in allFiles)
-{
-    Console.WriteLine($"  - {f.Name}: {f.GetSize()} байт");
-}
-
-Console.WriteLine("\nПошук за іменем 'note' (Composite pattern):");
-var noteFiles = docDir.Search("note").ToList();
-foreach (var result in noteFiles)
-{
-    Console.WriteLine($"  - Знайдено: {result.Name}");
-}
-
-Console.WriteLine("\nУсі .txt файли (LINQ Where):");
-var txtFiles = allFiles.Where(f => f.Extension == "txt").OrderByDescending(f => f.GetSize()).ToList();
-foreach (var f in txtFiles)
-{
-    Console.WriteLine($"  - {f.Name} ({f.GetSize()} байт)");
-}
-
-// === ДЕМОНСТРАЦІЯ COMPOSITE ===
-Console.WriteLine("\n--- COMPOSITE PATTERN ---");
-Console.WriteLine($"Загальний розмір Documents каталогу (рекурсивно): {docDir.GetSize()} байт");
-
-// === ДЕМОНСТРАЦІЯ СЕРІАЛІЗАЦІЇ ===
-Console.WriteLine("\n--- СЕРІАЛІЗАЦІЯ (JSON) ---");
-var jsonPath = "disk_backup.json";
-SerializationService.SaveToJson(disk, jsonPath);
-Console.WriteLine($"✓ Диск збережено в {jsonPath}");
-
-if (File.Exists(jsonPath))
-{
-    var fileInfo = new FileInfo(jsonPath);
-    Console.WriteLine($"  Розмір JSON файлу: {fileInfo.Length} байт");
-}
-
-var loadedDisk = SerializationService.LoadFromJson(jsonPath);
-Console.WriteLine($"✓ Диск завантажено з {jsonPath}");
-Console.WriteLine("Структура завантаженого диска:");
-loadedDisk.PrintTree();
-
-// === ДЕМОНСТРАЦІЯ ВАЛІДАЦІЇ ===
-Console.WriteLine("\n--- ВАЛІДАЦІЯ ---");
-Console.WriteLine($"Диск валідний: {disk.Root.Validate()}");
-
-// === ЗАПУСК ЮНІТ-ТЕСТІВ ===
-Console.WriteLine("\n--- ЮНІТ-ТЕСТИ (xUnit + Moq) ---");
-Console.WriteLine("Запуск тестів...\n");
-var startTest = DateTime.Now;
-var processInfo = new ProcessStartInfo
-{
-    FileName = "dotnet",
-    Arguments = "test --no-build -v minimal",
-    UseShellExecute = false,
-    RedirectStandardOutput = true,
-    RedirectStandardError = true,
-    CreateNoWindow = true
-};
-
-using (var process = Process.Start(processInfo))
-{
-    if (process != null)
-    {
-        var output = process.StandardOutput.ReadToEnd();
-        process.WaitForExit();
-        
-        // Вивести результати тестів
-        var lines = output.Split('\n');
-        foreach (var line in lines)
-        {
-            if (line.Contains("Passed") || line.Contains("passed") || line.Contains("xUnit"))
-                Console.WriteLine(line);
-        }
-    }
+    Console.WriteLine(entry);
 }
 
 Console.WriteLine("\n=== Демонстрація завершена ===");
 
+static void PrintSearchResults(string title, IEnumerable<IFileSystemItem> results)
+{
+    Console.WriteLine(title);
+
+    var items = results.ToList();
+    if (items.Count == 0)
+    {
+        Console.WriteLine("  нічого не знайшли");
+        return;
+    }
+
+    foreach (var item in items)
+    {
+        Console.WriteLine($"  - {item.Name} ({item.GetSize()} байт)");
+    }
+}

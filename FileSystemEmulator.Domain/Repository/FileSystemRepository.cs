@@ -61,5 +61,22 @@ public class FileSystemRepository<T> where T : FileSystemItem
         return _items.Select(selector);
     }
 
+    /// <summary>
+    /// Згортає колекцію до одного значення
+    /// </summary>
+    public TAccum Reduce<TAccum>(Func<TAccum, T, TAccum> func, TAccum seed)
+    {
+        if (func == null)
+            throw new ArgumentNullException(nameof(func));
+
+        var accumulator = seed;
+        foreach (var item in _items)
+        {
+            accumulator = func(accumulator, item);
+        }
+
+        return accumulator;
+    }
+
     public int Count => _items.Count;
 }

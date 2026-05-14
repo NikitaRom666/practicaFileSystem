@@ -7,5 +7,6 @@ public enum AccessRight
     Read = 1,
     Write = 2,
     Execute = 4,
-    FullControl = 7
+    Delete = 8,
+    FullControl = 15
 }
