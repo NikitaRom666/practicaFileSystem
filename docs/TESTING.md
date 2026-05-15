@@ -3,7 +3,7 @@
 ## Загальний результат
 
 Passed: 27 | Failed: 0 | Duration: ~44ms
-Framework: xUnit + Moq | Target: net8.0
+Framework: xUnit + Moq | Target: net10.0
 
 ## По групах тестів
 

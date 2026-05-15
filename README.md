@@ -1,6 +1,6 @@
 # File System Emulator
 
-Навчальний міні-проєкт з ООП на C#/.NET 9. Емулює файлову систему з деревом каталогів,
+Навчальний міні-проєкт з ООП на C#/.NET 10. Емулює файлову систему з деревом каталогів,
 контролем доступу, скасуванням операцій і набором класичних патернів проєктування.
 
 ## Можливості
@@ -88,7 +88,7 @@ public class LegacyDirectoryItem : FileSystemItem
 
 ### Вимоги
 
-- .NET 9 SDK
+- .NET 10 SDK
 - xUnit
 - Moq
 
@@ -101,7 +101,7 @@ dotnet build
 ### Запуск програми
 
 ```bash
-dotnet run --project FileSystemEmulator.App
+dotnet run --project FileSystemEmulator.App/FileSystemEmulator.App.csproj
 ```
 
 ### Запуск тестів
